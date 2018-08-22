@@ -1,17 +1,21 @@
 {
   "name": "iwe7-ts-compiler",
-  "version": "0.1.3",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "version": "0.1.4",
+  "main": "index.js",
+  "typings": "index.d.ts",
   "author": {
     "name": "imeepos",
     "email": "1037483576@qq.com",
     "url": "https://github.com/iwe7/list-dir-file"
   },
   "dependencies": {
-    "rxjs": "^6.0.0"
+    "gulp": "^3.9.1",
+    "gulp-sourcemaps": "^2.6.4",
+    "gulp-typescript": "^5.0.0-alpha.3"
   },
   "devDependencies": {
-    "@types/node": "~8.9.4"
+    "@types/node": "~8.9.4",
+    "@types/gulp": "^4.0.5",
+    "@types/gulp-sourcemaps": "^0.0.32"
   }
 }
