@@ -2,9 +2,20 @@ import { Observable, Observer } from 'rxjs';
 import { createProject, Project } from 'gulp-typescript';
 import * as gulp from 'gulp';
 import { relative, Path, dirname, resolve, normalize, parseJson, basename } from '@angular-devkit/core';
-import * as sourcemaps from 'gulp-sourcemaps';
+// import * as sourcemaps from 'gulp-sourcemaps';
+const zip = require('gulp-zip');
+import { Version } from '@angular/core';
 import { readFileSync, writeFileSync } from 'fs';
+import * as compareVersions from 'compare-versions';
+export class Iwe7Version extends Version {
+    constructor(full: string) {
+        super(full);
+    }
 
+    compare(version: Iwe7Version): 0 | 1 | -1 {
+        return compareVersions(version.full, this.full);
+    }
+}
 export function iwe7TsCompiler(tsconfig: string): Observable<string> {
     return Observable.create((obser: Observer<string>) => {
         tsconfig = normalize(tsconfig);
@@ -22,17 +33,9 @@ export function iwe7TsCompiler(tsconfig: string): Observable<string> {
         const packageJson: any = parseJson(readFileSync(packagePath).toString('utf-8'));
         packageJson.main = basename(_lib).replace('.ts', '.js');
         // 版本号自动递增
-        const version: string = packageJson.version;
-        const versions: string[] = version.split('.');
-        const newVersion = versions.map((res, index) => {
-            if (index === versions.length - 1) {
-                let id = parseInt(res);
-                id = id + 1;
-                return id + ''
-            } else {
-                return res;
-            }
-        }).join('.');
+        const version: Version = new Version(packageJson.version);
+        let patch = parseInt(version.patch);
+        const newVersion = `${version.major}.${version.minor}.${patch + 1}`;
         packageJson.version = newVersion;
         writeFileSync(packagePath, JSON.stringify(packageJson, null, 2));
         const srcs = [
@@ -50,16 +53,30 @@ export function iwe7TsCompiler(tsconfig: string): Observable<string> {
         );
         const _tscTask = gulp.series(
             () => project.src()
-                .pipe(sourcemaps.init())
+                // .pipe(sourcemaps.init())
                 .pipe(project())
-                .pipe(sourcemaps.write("."))
+                // .pipe(sourcemaps.write("."))
                 .pipe(gulp.dest(outDir)),
             (done) => {
                 obser.next('typescript编译完成');
                 done();
             }
         );
-        gulp.series(_staticTask, _tscTask)(done => {
+        const _zipTask = gulp.series(
+            () => {
+                gulp.src(outDir + '/**/*').pipe(
+                    zip(`${packageJson.name}/${packageJson.version}.zip`)
+                ).pipe(
+                    gulp.dest('.publish')
+                );
+            },
+            (done) => {
+                obser.next('压缩完成:publish' + `${packageJson.name}/${packageJson.version}.zip`);
+                done();
+            }
+        );
+        gulp.series(_staticTask, _tscTask, _zipTask)(done => {
+            obser.next('任务完成');
             obser.complete();
         });
     })
